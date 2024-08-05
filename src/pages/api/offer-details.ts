@@ -56,30 +56,59 @@ export interface OfferDetailsApiRequest {
   offer_id?: string;
 }
 
-export default async function OffersDetails(
+const allowCors =
+  (fn: (req: NextApiRequest, res: NextApiResponse) => Promise<void>) =>
+  async (req: NextApiRequest, res: NextApiResponse) => {
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    );
+
+    if (req.method === "OPTIONS") {
+      res.status(200).end();
+      return;
+    }
+
+    await fn(req, res);
+  };
+
+async function OffersDetails(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
   try {
     const body: OfferDetailsApiRequest & { token: string } = req.body;
-    const staticData = await fetch(`https://ui-api.partners.sandbox.tripleup.dev/offers-details`, {
-      headers: {
-        "X-Cardholder-Token": body.token ?? "",
-        "Content-Type": "application/json"
-      },
-      method: "POST",
-      body: JSON.stringify({
-        offer_id: body.offer_id,
-        proximity_target: {
-          latitude: 9.977856,
-          longitude: 76.3133952
-        }
-      })
-    });
+    const staticData = await fetch(
+      `https://ui-api.partners.sandbox.tripleup.dev/offers-details`,
+      {
+        headers: {
+          "X-Cardholder-Token": body.token ?? "",
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        body: JSON.stringify({
+          offer_id: body.offer_id,
+          proximity_target: {
+            latitude: 9.977856,
+            longitude: 76.3133952,
+          },
+        }),
+      }
+    );
     const data = await staticData.json();
     console.log(data);
     res.status(200).json({ response: data, message: "jhu" });
   } catch (err) {
-    res.status(403).json({ response: {} as OfferDetailsApiResponse, message: "error" });
+    res
+      .status(403)
+      .json({ response: {} as OfferDetailsApiResponse, message: "error" });
   }
 }
+
+export default allowCors(OffersDetails);
