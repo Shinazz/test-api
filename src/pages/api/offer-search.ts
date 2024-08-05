@@ -103,7 +103,7 @@ export default async function OffersSearch(
     const data = await staticData.json();
     console.log(data);
     res.status(200).json({ response: data, message: "jhu", error: null });
-  } catch (err) {
+  } catch (err:any) {
     res.status(403).json({
       response: {},
       message: err.message,
