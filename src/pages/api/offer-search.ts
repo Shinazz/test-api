@@ -71,29 +71,53 @@ export interface OffersDetailsResponse {
   terms_and_conditions: string;
   type: string;
 }
+const allowCors =
+  (fn: (req: NextApiRequest, res: NextApiResponse) => Promise<void>) =>
+  async (req: NextApiRequest, res: NextApiResponse) => {
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    );
 
-export default async function OffersSearch(
+    if (req.method === "OPTIONS") {
+      res.status(200).end();
+      return;
+    }
+
+    await fn(req, res);
+  };
+
+async function OffersSearch(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
   try {
     const body: OffersSearchApiRequest & { token: string } = req.body;
-    const staticData = await fetch(`https://ui-api.partners.sandbox.tripleup.dev/offers-search`, {
-      headers: {
-        "X-Cardholder-Token": body.token ?? "",
-        "Content-Type": "application/json"
-      },
-      method: "POST",
-      body: JSON.stringify({
-        apply_filter: { ...body.apply_filter },
-        proximity_target: {
-          ...body.proximity_target
+    const staticData = await fetch(
+      `https://ui-api.partners.sandbox.tripleup.dev/offers-search`,
+      {
+        headers: {
+          "X-Cardholder-Token": body.token ?? "",
+          "Content-Type": "application/json",
         },
-        page_size: 24,
-        page_offset: body.page_offset ?? 0,
-        text_query: body.text_query ?? undefined
-      })
-    });
+        method: "POST",
+        body: JSON.stringify({
+          apply_filter: { ...body.apply_filter },
+          proximity_target: {
+            ...body.proximity_target,
+          },
+          page_size: 24,
+          page_offset: body.page_offset ?? 0,
+          text_query: body.text_query ?? undefined,
+        }),
+      }
+    );
 
     if (!staticData.ok) {
       // Handle the error response
@@ -103,13 +127,15 @@ export default async function OffersSearch(
     const data = await staticData.json();
     console.log(data);
     res.status(200).json({ response: data, message: "jhu", error: null });
-  } catch (err:any) {
+  } catch (err: any) {
     res.status(403).json({
       response: {},
       message: err.message,
       error: {
-        err: err
-      }
+        err: err,
+      },
     });
   }
 }
+
+export default allowCors(OffersSearch);
