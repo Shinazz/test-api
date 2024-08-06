@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { cors, runMiddleware } from "./_middlewares/cors";
 
+
 type ResponseData = {
   message: string;
   response: any;
@@ -79,6 +80,7 @@ async function OffersSearch(
 ) {
   try {
     await runMiddleware(req, res, cors);
+
     const body: OffersSearchApiRequest & { token: string } = req.body;
     const staticData = await fetch(
       `https://ui-api.partners.sandbox.tripleup.dev/offers-search`,
@@ -106,6 +108,7 @@ async function OffersSearch(
     }
 
     const data = await staticData.json();
+
     res.status(200).json({ response: data, message: "jhu", error: null });
   } catch (err: any) {
     res.status(403).json({

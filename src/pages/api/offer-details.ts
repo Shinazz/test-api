@@ -81,7 +81,6 @@ async function OffersDetails(
         }),
       }
     );
-
     if (!staticData.ok) {
       // Handle the error response
       if (staticData.status === 403) {
@@ -110,3 +109,4 @@ async function OffersDetails(
 }
 
 export default OffersDetails;
+
