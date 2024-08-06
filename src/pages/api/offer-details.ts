@@ -1,10 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { runMiddleware, cors } from "./_middlewares/cors";
 
 type ResponseData = {
   message: string;
-  response: OfferDetailsApiResponse;
+  response?: OfferDetailsApiResponse;
+  error: any;
 };
-
 export interface Address {
   city: string;
   country_code: string;
@@ -56,32 +57,11 @@ export interface OfferDetailsApiRequest {
   offer_id?: string;
 }
 
-const allowCors =
-  (fn: (req: NextApiRequest, res: NextApiResponse) => Promise<void>) =>
-  async (req: NextApiRequest, res: NextApiResponse) => {
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,OPTIONS,PATCH,DELETE,POST,PUT"
-    );
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
-    );
-
-    if (req.method === "OPTIONS") {
-      res.status(200).end();
-      return;
-    }
-
-    await fn(req, res);
-  };
-
 async function OffersDetails(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
+  await runMiddleware(req, res, cors);
   try {
     const body: OfferDetailsApiRequest & { token: string } = req.body;
     const staticData = await fetch(
@@ -101,14 +81,32 @@ async function OffersDetails(
         }),
       }
     );
+    if (!staticData.ok) {
+      // Handle the error response
+      if (staticData.status === 403) {
+        res.status(403).json({
+          response: undefined,
+          message: "User Authentication",
+          error: {
+            status: 403,
+            message:
+              "Forbidden: You do not have permission to access this resource.",
+          },
+        });
+      }
+    }
     const data = await staticData.json();
-    console.log(data);
-    res.status(200).json({ response: data, message: "jhu" });
-  } catch (err) {
-    res
-      .status(403)
-      .json({ response: {} as OfferDetailsApiResponse, message: "error" });
+    res.status(200).json({ response: data, message: "jhu", error: null });
+  } catch (err: any) {
+    res.status(500).json({
+      response: undefined,
+      message: err.message,
+      error: {
+        err: err,
+      },
+    });
   }
 }
 
-export default allowCors(OffersDetails);
+export default OffersDetails;
+
