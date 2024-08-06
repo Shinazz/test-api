@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { cors, runMiddleware } from "./_middlewares/cors";
 
 type ResponseData = {
   message: string;
@@ -71,33 +72,13 @@ export interface OffersDetailsResponse {
   terms_and_conditions: string;
   type: string;
 }
-const allowCors =
-  (fn: (req: NextApiRequest, res: NextApiResponse) => Promise<void>) =>
-  async (req: NextApiRequest, res: NextApiResponse) => {
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,OPTIONS,PATCH,DELETE,POST,PUT"
-    );
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
-    );
-
-    if (req.method === "OPTIONS") {
-      res.status(200).end();
-      return;
-    }
-
-    await fn(req, res);
-  };
 
 async function OffersSearch(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
   try {
+    await runMiddleware(req, res, cors);
     const body: OffersSearchApiRequest & { token: string } = req.body;
     const staticData = await fetch(
       `https://ui-api.partners.sandbox.tripleup.dev/offers-search`,
@@ -125,7 +106,6 @@ async function OffersSearch(
     }
 
     const data = await staticData.json();
-    console.log(data);
     res.status(200).json({ response: data, message: "jhu", error: null });
   } catch (err: any) {
     res.status(403).json({
@@ -138,4 +118,4 @@ async function OffersSearch(
   }
 }
 
-export default allowCors(OffersSearch);
+export default OffersSearch;

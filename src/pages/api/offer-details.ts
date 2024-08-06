@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { runMiddleware, cors } from "./_middlewares/cors";
 
 type ResponseData = {
   message: string;
@@ -56,32 +57,11 @@ export interface OfferDetailsApiRequest {
   offer_id?: string;
 }
 
-const allowCors =
-  (fn: (req: NextApiRequest, res: NextApiResponse) => Promise<void>) =>
-  async (req: NextApiRequest, res: NextApiResponse) => {
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,OPTIONS,PATCH,DELETE,POST,PUT"
-    );
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
-    );
-
-    if (req.method === "OPTIONS") {
-      res.status(200).end();
-      return;
-    }
-
-    await fn(req, res);
-  };
-
 async function OffersDetails(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
+  await runMiddleware(req, res, cors);
   try {
     const body: OfferDetailsApiRequest & { token: string } = req.body;
     const staticData = await fetch(
@@ -117,11 +97,8 @@ async function OffersDetails(
       }
     }
     const data = await staticData.json();
-    console.log(data);
     res.status(200).json({ response: data, message: "jhu", error: null });
   } catch (err: any) {
-    console.log(err.statusCode);
-
     res.status(500).json({
       response: undefined,
       message: err.message,
@@ -132,4 +109,4 @@ async function OffersDetails(
   }
 }
 
-export default allowCors(OffersDetails);
+export default OffersDetails;
